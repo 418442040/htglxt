@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div class="app_wrap">
    <router-view></router-view>
   </div>
 </template>
@@ -13,5 +13,7 @@ export default {
 </script>
 
 <style>
-
+.app_wrap {
+  height: 100%;
+}
 </style>
