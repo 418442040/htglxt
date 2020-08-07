@@ -58,46 +58,46 @@
       </el-form>
       <!-- 注册框 -->
       <el-dialog center title="用户注册" :visible.sync="dialogFormVisible" width='600px'>
-      <el-form :model="register">
-        <el-form-item label="头像">
+      <el-form :model="registerFrom" :rules='register_rules' ref="registerFrom">
+        <el-form-item label="头像" prop="avatar">
           <el-upload
           class="avatar-uploader"
           :action="uploadUrl"
           :show-file-list="false"
           :on-success="handleAvatarSuccess"
           :before-upload="beforeAvatarUpload"
-          name="img"
+          name="image"
           >
           <img v-if="imageUrl" :src="imageUrl" class="avatar">
           <i v-else class="el-icon-plus avatar-uploader-icon"></i>
         </el-upload>
         </el-form-item>
-        <el-form-item label="昵称" :label-width="formLabelWidth">
-          <el-input v-model="register.name" autocomplete="off"></el-input>
+        <el-form-item prop="username" label="昵称" :label-width="formLabelWidth">
+          <el-input v-model="registerFrom.username" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item label="邮箱" :label-width="formLabelWidth">
-          <el-input v-model="register.email" autocomplete="off"></el-input>
+        <el-form-item prop="email" label="邮箱" :label-width="formLabelWidth">
+          <el-input v-model="registerFrom.email" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item label="手机" :label-width="formLabelWidth">
-          <el-input v-model="register.phone" autocomplete="off"></el-input>
+        <el-form-item prop="phone" label="手机" :label-width="formLabelWidth">
+          <el-input v-model="registerFrom.phone" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item label="密码" :label-width="formLabelWidth">
-          <el-input v-model="register.password" autocomplete="off"></el-input>
+        <el-form-item prop="password" label="密码" :label-width="formLabelWidth">
+          <el-input v-model="registerFrom.password" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item label="图形码" :label-width="formLabelWidth">
+        <el-form-item prop="code" label="图形码" :label-width="formLabelWidth">
           <el-row>
           <el-col :span="18"> 
-          <el-input v-model="register.code" autocomplete="off"></el-input>
+          <el-input v-model="registerFrom.code" autocomplete="off"></el-input>
           </el-col>
           <el-col :span="6" class="code_col">
             <img class="code_img" :src="codeUrl" alt="">
           </el-col>
         </el-row>
         </el-form-item>
-        <el-form-item label="验证码" :label-width="formLabelWidth">
+        <el-form-item prop="rcode" label="验证码" :label-width="formLabelWidth">
           <el-row>
           <el-col :span="18"> 
-          <el-input v-model="register.rcode" autocomplete="off"></el-input>
+          <el-input v-model="registerFrom.rcode" autocomplete="off"></el-input>
           </el-col>
           <el-col :span="6" class="code_col">
             <el-button @click='getMessage()'>{{btnMessage}}</el-button>
@@ -107,7 +107,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
+        <el-button type="primary" @click="submitRegister">确 定</el-button>
       </div>
     </el-dialog>
     </div>
@@ -118,7 +118,8 @@
 
 <script>
 //导入封装的登录接口
-import {login,short_message} from '../../api/login.js'
+import {login,short_message,register} from '../../api/login.js'
+//定义手机验证规则
 var validatePass = (rule, value, callback) => {
   if (value === "") {
     callback(new Error("请输入手机号码"));
@@ -131,6 +132,19 @@ var validatePass = (rule, value, callback) => {
     }
   }
 };
+//定义邮箱验证规则
+var validateEmail = (rule, value, callback) => {
+  if (value === "") {
+    callback(new Error("请输入邮箱"));
+  } else {
+    const reg = /\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*/;
+    if (reg.test(value) === true) {
+      callback();
+    } else {
+      callback(new Error("邮箱格式不正确"));
+    }
+  }
+};
 export default {
   name: "login",
   data() {
@@ -140,7 +154,7 @@ export default {
       //负责弹出对话框
       dialogFormVisible:false,
       //对话框的宽度
-      formLabelWidth:'60px',
+      formLabelWidth:'65px',
       //手机验证码计时
       second:0,
       //短信验证码倒计时更新
@@ -155,13 +169,14 @@ export default {
         code: "",
         checked: false,
       },
-      register: {
-        name:'',
+      registerFrom: {
+        username:'',
         email:'',
         phone:'',
         password:'',
         code:'',
         rcode:'',
+        avatar:''
       },
       rules: {
           phone: [{ validator: validatePass, trigger: "blur" }],
@@ -173,6 +188,26 @@ export default {
             { required: true, message: "请输入验证码", trigger: "blur" },
             { min: 4, max: 4, message: "验证码为四位数", trigger: "blur" },
           ],
+        },
+      register_rules: {
+          phone: [{ validator: validatePass, trigger: "blur" }],
+          email: [{ validator: validateEmail, trigger: "blur" }],
+          password: [
+            { required: true, message: "请输入密码", trigger: "blur" },
+            { min: 6, max: 10, message: "密码为6到11位数", trigger: "blur" },
+          ],
+          code: [
+            { required: true, message: "请输入验证码", trigger: "blur" },
+            { min: 4, max: 4, message: "验证码为四位数", trigger: "blur" },
+          ],
+          rcode: [
+            { required: true, message: "请输入手机验证码", trigger: "blur" },
+            { min: 4, max: 4, message: "验证码为四位数", trigger: "blur" },
+          ],
+          username: [
+            { required: true, message: "请输入用户名", trigger: "blur" },
+          ],
+          
         },
     };
   },
@@ -204,10 +239,10 @@ export default {
       },
       getMessage(){
         const reg = /0?(13|14|15|18|17)[0-9]{9}/
-        if(reg.test(this.register.phone) == false) {
+        if(reg.test(this.registerFrom.phone) == false) {
           return this.$message.warning('手机号码错误')
         }
-        if(this.register.code.length != 4) {
+        if(this.registerFrom.code.length != 4) {
           return this.$message.warning('验证码为4位数')
         }
         if(this.second == 0) {
@@ -224,8 +259,8 @@ export default {
           return
         }
         short_message({
-          phone:this.register.phone,
-          code:this.register.code
+          phone:this.registerFrom.phone,
+          code:this.registerFrom.code
         }).then(res => {
           if(res.status == 200) {
             this.$message.success('验证码为1234')
@@ -245,6 +280,41 @@ export default {
       // 保存到 注册表单的 头像中
       // this.registerForm.avatar =res.data.file_path;
     },
+    beforeAvatarUpload(file) {
+      const isJPG = file.type === "image/jpeg";
+      const isLt2M = file.size / 1024 / 1024 < 2;
+
+      if (!isJPG) {
+        this.$message.error("上传头像图片只能是 JPG 格式!");
+      }
+      if (!isLt2M) {
+        this.$message.error("上传头像图片大小不能超过 2MB!");
+      }
+      return isJPG && isLt2M;
+    },
+    submitRegister(){
+      this.$refs.registerFrom.validate((valid) => {
+          if (valid) {
+            register({
+              username:this.registerFrom.username,
+              email:this.registerFrom.email,
+              phone:this.registerFrom.phone,
+              password:this.registerFrom.password,
+              avatar:this.registerFrom.avatar,
+              rcode:this.registerFrom.rcode,
+            }).then(res => {
+              // console.log(res)
+              if(res.status == 200) {
+                this.$message.success('注册成功')
+                this.dialogFormVisible=false
+              }
+            })
+          } else {
+            this.$message.warning('格式不对,请修改')
+            return false;
+          }
+        });
+      },
 }};
 </script>
 

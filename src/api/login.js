@@ -18,3 +18,12 @@ export function short_message(data){
         data
     })
 }
+
+//注册接口
+export function register (data){
+    return axios({
+        url:"http://127.0.0.1/heimamm/public/register",
+        method:'post',
+        data
+    })
+}
