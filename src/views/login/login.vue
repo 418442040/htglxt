@@ -53,9 +53,63 @@
         </el-form-item>
         <el-form-item>
           <el-button class="login_btn" type="primary" @click="submitForm('ruleForm')">登录</el-button>
-          <el-button class='login_btn register_btn' type="primary">注册</el-button>
+          <el-button class='login_btn register_btn' type="primary" @click="dialogFormVisible=!dialogFormVisible">注册</el-button>
         </el-form-item>
       </el-form>
+      <!-- 注册框 -->
+      <el-dialog center title="用户注册" :visible.sync="dialogFormVisible" width='600px'>
+      <el-form :model="register">
+        <el-form-item label="头像">
+          <el-upload
+          class="avatar-uploader"
+          :action="uploadUrl"
+          :show-file-list="false"
+          :on-success="handleAvatarSuccess"
+          :before-upload="beforeAvatarUpload"
+          name="img"
+          >
+          <img v-if="imageUrl" :src="imageUrl" class="avatar">
+          <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+        </el-upload>
+        </el-form-item>
+        <el-form-item label="昵称" :label-width="formLabelWidth">
+          <el-input v-model="register.name" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="邮箱" :label-width="formLabelWidth">
+          <el-input v-model="register.email" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="手机" :label-width="formLabelWidth">
+          <el-input v-model="register.phone" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" :label-width="formLabelWidth">
+          <el-input v-model="register.password" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="图形码" :label-width="formLabelWidth">
+          <el-row>
+          <el-col :span="18"> 
+          <el-input v-model="register.code" autocomplete="off"></el-input>
+          </el-col>
+          <el-col :span="6" class="code_col">
+            <img class="code_img" :src="codeUrl" alt="">
+          </el-col>
+        </el-row>
+        </el-form-item>
+        <el-form-item label="验证码" :label-width="formLabelWidth">
+          <el-row>
+          <el-col :span="18"> 
+          <el-input v-model="register.rcode" autocomplete="off"></el-input>
+          </el-col>
+          <el-col :span="6" class="code_col">
+            <el-button @click='getMessage()'>{{btnMessage}}</el-button>
+          </el-col>
+        </el-row>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisible = false">取 消</el-button>
+        <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
+      </div>
+    </el-dialog>
     </div>
     <!-- 右侧的图片 -->
     <img src="../../assets/login_banner_ele.png" alt="" />
@@ -64,7 +118,7 @@
 
 <script>
 //导入封装的登录接口
-import {login} from '../../api/login.js'
+import {login,short_message} from '../../api/login.js'
 var validatePass = (rule, value, callback) => {
   if (value === "") {
     callback(new Error("请输入手机号码"));
@@ -83,11 +137,31 @@ export default {
     return {
       // 验证码的地址
       codeUrl: "http://127.0.0.1/heimamm/public/captcha?type=login",
+      //负责弹出对话框
+      dialogFormVisible:false,
+      //对话框的宽度
+      formLabelWidth:'60px',
+      //手机验证码计时
+      second:0,
+      //短信验证码倒计时更新
+      btnMessage:'获取用户验证码',
+      //注册头像上传的地址
+      uploadUrl:'http://127.0.0.1/heimamm/public/uploads',
+      //头像的地址
+      imageUrl:"",
       ruleForm: {
         phone: "",
         password: "",
         code: "",
         checked: false,
+      },
+      register: {
+        name:'',
+        email:'',
+        phone:'',
+        password:'',
+        code:'',
+        rcode:'',
       },
       rules: {
           phone: [{ validator: validatePass, trigger: "blur" }],
@@ -128,8 +202,50 @@ export default {
           }
         });
       },
-  }
-};
+      getMessage(){
+        const reg = /0?(13|14|15|18|17)[0-9]{9}/
+        if(reg.test(this.register.phone) == false) {
+          return this.$message.warning('手机号码错误')
+        }
+        if(this.register.code.length != 4) {
+          return this.$message.warning('验证码为4位数')
+        }
+        if(this.second == 0) {
+          this.second = 60
+          let timeId = setInterval(() => {
+            this.second --
+            this.btnMessage = '还剩' + this.second + '秒'
+            if(this.second == 0) {
+              this.btnMessage = '获取用户验证码'
+              clearInterval(timeId)
+            }
+          }, 100);
+        } else {
+          return
+        }
+        short_message({
+          phone:this.register.phone,
+          code:this.register.code
+        }).then(res => {
+          if(res.status == 200) {
+            this.$message.success('验证码为1234')
+            // window.console.log(URL.createObjectURL)
+          }
+        })
+      },
+     // 上传的逻辑
+    // 上传成功了
+    handleAvatarSuccess(res, file) {
+      // 生成本地的临时路径
+      this.imageUrl = URL.createObjectURL(file.raw);
+      // 打印res
+      // window.console.log(res)
+      // 获取服务器返回的 地址
+      // window.console.log(res.data.file_path);
+      // 保存到 注册表单的 头像中
+      // this.registerForm.avatar =res.data.file_path;
+    },
+}};
 </script>
 
 <style lang="less">
@@ -188,10 +304,50 @@ export default {
     .code_col {
       height: 40px;
     }
+    .el-dialog__header {
+      background: linear-gradient(
+      -225deg,
+      rgba(1, 198, 250, 1),
+      rgba(20, 147, 250, 1)
+  );
+     
+    }
+    .el-dialog__title {
+       font-size: 18px;
+      color: #f5f5f5;
+    }
+    
   }
   .demo-ruleForm {
     margin-right: 41px;
     margin-top: 31px;
   }
 }
+//element头像上传组件样式
+.avatar-uploader {
+    text-align: center;
+  }
+  .avatar-uploader .el-upload {
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatar-uploader .el-upload:hover {
+    border-color: #409eff;
+  }
+  .avatar-uploader-icon {
+    font-size: 28px;
+    color: #8c939d;
+    width: 178px;
+    height: 178px;
+    line-height: 178px;
+    text-align: center;
+  }
+  .avatar {
+    width: 178px;
+    height: 178px;
+    display: block;
+  }
 </style>
