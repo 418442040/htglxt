@@ -38,12 +38,12 @@
             placeholder="请输入验证码"
           ></el-input>
           </el-col>
-          <el-col :span="6" class="code_img">
-            <img src="" alt="">
+          <el-col :span="6" class="code_col">
+            <img :src="codeUrl" alt="" class="code_img" @click="changeCode">
           </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item>
+        <el-form-item >
           <el-checkbox v-model="ruleForm.checked" >
             我已阅读并同意
             <el-link type="primary">用户协议</el-link>
@@ -52,7 +52,7 @@
           </el-checkbox>
         </el-form-item>
         <el-form-item>
-          <el-button class="login_btn" type="primary">登录</el-button>
+          <el-button class="login_btn" type="primary" @click="submitForm('ruleForm')">登录</el-button>
           <el-button class='login_btn register_btn' type="primary">注册</el-button>
         </el-form-item>
       </el-form>
@@ -63,8 +63,8 @@
 </template>
 
 <script>
-//导入axios
-import axios from 'axios'
+//导入封装的登录接口
+import {login} from '../../api/login.js'
 var validatePass = (rule, value, callback) => {
   if (value === "") {
     callback(new Error("请输入手机号码"));
@@ -81,6 +81,8 @@ export default {
   name: "login",
   data() {
     return {
+      // 验证码的地址
+      codeUrl: "http://127.0.0.1/heimamm/public/captcha?type=login",
       ruleForm: {
         phone: "",
         password: "",
@@ -100,6 +102,33 @@ export default {
         },
     };
   },
+  methods: {
+    //刷新验证码
+    changeCode(){
+      this.codeUrl = "http://127.0.0.1/heimamm/public/captcha?type=login" + Date.now()
+    },
+    submitForm(formName) {
+      if(this.ruleForm.checked == false) {
+        this.$message.warning("请先阅读并勾选用户协议")
+        return
+      }
+      this.$refs[formName].validate((valid) => {
+          if (valid) {
+            login({
+              phone:this.ruleForm.phone,
+              password:this.ruleForm.password,
+              code:this.ruleForm.code,
+            }).then(res => {
+              if(res.status == 200) {
+                this.$message.success('登录成功')
+              }
+            })
+          } else {
+            this.$message.error("表单格式错误")
+          }
+        });
+      },
+  }
 };
 </script>
 
@@ -146,7 +175,8 @@ export default {
       }
     }
     .code_img {
-      background-color: red;
+      width: 100%;
+      height: 100%;
     }
     .login_btn {
       width: 100%;
@@ -154,6 +184,9 @@ export default {
     .register_btn {
       margin-left: 0;
       margin-top: 26px;
+    }
+    .code_col {
+      height: 40px;
     }
   }
   .demo-ruleForm {
