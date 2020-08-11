@@ -230,6 +230,10 @@ export default {
             }).then(res => {
               if(res.status == 200) {
                 this.$message.success('登录成功')
+                //存token
+                window.localStorage.setItem('mmToken',res.data.code)
+                //跳转到登录页
+                this.$router.push('/index')
               }
             })
           } else {
@@ -307,6 +311,7 @@ export default {
               if(res.status == 200) {
                 this.$message.success('注册成功')
                 this.dialogFormVisible=false
+                this.$refs.registerFrom.resetFields()
               }
             })
           } else {
